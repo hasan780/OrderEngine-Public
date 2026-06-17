@@ -15,17 +15,31 @@ pip install -r requirements.txt
 pytest tests/ -v
 ```
 
-Tests in `test_order_book.py` should pass out of the box.  
-Tests in `test_matching_engine.py` will fail until you implement the matching logic — that's your task!
-
 ## Structure
 
 ```
 order_engine/
-  models.py          # Order, Trade, enums — read this first
-  order_book.py      # OrderBook with price levels — already implemented
-  matching_engine.py # MatchingEngine — implement the TODO methods here
+  models.py           # Order, Trade, and status enums — define your fields here
+  order_book.py       # PriceLevel and OrderBook — implement add, cancel, best bid/ask
+  matching_engine.py  # MatchingEngine — implement submit, cancel, and matching logic
 tests/
-  test_order_book.py      # Should pass from the start
-  test_matching_engine.py # Your implementation will make these pass
+  test_order_book.py      # Tests for OrderBook
+  test_matching_engine.py # Tests for MatchingEngine
 ```
+
+## Key classes
+
+**`models.py`**
+- `Order` — represents a single order (fields to be designed by you)
+- `Trade` — represents an executed match (fields to be designed by you)
+- `Side`, `OrderType`, `OrderStatus` — enums already provided
+
+**`order_book.py`**
+- `PriceLevel` — holds all orders at a single price, FIFO
+- `OrderBook` — manages bids and asks; bids sorted highest first, asks lowest first
+
+**`matching_engine.py`**
+- `MatchingEngine` — entry point for submitting and cancelling orders
+- `_match_limit_order` — walk opposite side and fill where prices cross
+- `_match_market_order` — sweep best available prices until filled
+- `_create_trade` — build a Trade and update both order statuses
