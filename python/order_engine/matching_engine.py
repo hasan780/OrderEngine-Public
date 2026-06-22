@@ -4,11 +4,12 @@ from .order_book import OrderBook
 
 
 class MatchingEngine:
-    # TODO [later]: decide what state the engine holds.
-    #   - books:  symbol -> OrderBook
-    #   - orders: order_id -> Order
-    #   - trades: list of all executed trades
-    # Define them in __init__.
+    def __init__(self):
+        # TODO [later]: store the state the engine needs.
+        #   - books:  symbol -> OrderBook
+        #   - orders: order_id -> Order
+        #   - trades: list of all executed trades
+        pass
 
     def submit_order(self, order: Order) -> List[Trade]:
         # TODO [later]:

@@ -3,10 +3,11 @@ from .models import Order, Side
 
 
 class PriceLevel:
-    # TODO [this week]: decide what state a price level holds.
-    #   - the price of this level
-    #   - the orders at this level, stored FIFO (earliest first)
-    # Define them in __init__.
+    def __init__(self, price: float):
+        # TODO [this week]: store the state a price level needs.
+        #   - self.price = price
+        #   - self.orders = ...   # the orders at this level, stored FIFO (earliest first)
+        pass
 
     def add(self, order: Order) -> None:
         # TODO [this week]: append order to the end of this level (FIFO)
@@ -23,11 +24,12 @@ class PriceLevel:
 
 
 class OrderBook:
-    # TODO [this week]: decide what state the book holds.
-    #   - the symbol
-    #   - bid levels (keyed by price, highest first)
-    #   - ask levels (keyed by price, lowest first)
-    # Define them in __init__.
+    def __init__(self, symbol: str):
+        # TODO [this week]: store the state the book needs.
+        #   - self.symbol = symbol
+        #   - bid levels (keyed by price, highest first)
+        #   - ask levels (keyed by price, lowest first)
+        pass
 
     def add_order(self, order: Order) -> None:
         # TODO [this week]:
