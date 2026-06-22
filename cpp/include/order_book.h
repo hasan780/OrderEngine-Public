@@ -7,7 +7,9 @@ namespace order_engine {
 
 // All orders at a single price, FIFO.
 struct PriceLevel {
-    // think: what do you need to store here?
+    // TODO [this week]: decide what state a price level holds.
+    //   - the price of this level
+    //   - the orders at this level, stored FIFO (earliest first)
 
     int64_t total_quantity() const;
 };
@@ -26,7 +28,10 @@ public:
     std::optional<double> spread() const;
 
 private:
-    // think: what data structures hold the bid and ask levels?
+    // TODO [this week]: decide what state the book holds.
+    //   - the symbol
+    //   - bid levels (keyed by price, highest first)
+    //   - ask levels (keyed by price, lowest first)
 };
 
 }  // namespace order_engine

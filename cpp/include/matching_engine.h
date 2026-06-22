@@ -15,7 +15,7 @@ public:
     const std::vector<Trade>& trade_history() const;
 
 private:
-    // think: what do you need to store — books, orders, trades?
+    // TODO [later]: decide what state the engine holds — books, orders, trades.
 
     std::vector<Trade> match_limit_order (Order* order, OrderBook& book);
     std::vector<Trade> match_market_order(Order* order, OrderBook& book);
