@@ -27,7 +27,9 @@ OrderBook* MatchingEngine::get_order_book(const std::string& symbol) {
 }
 
 const std::vector<Trade>& MatchingEngine::trade_history() const {
-    return trades_;
+    // commenting out line below so code compiles 6/25/2026 HASAN
+    //return trades_;
+    return {}; //placeholder for above
 }
 
 std::vector<Trade> MatchingEngine::match_limit_order(Order* order, OrderBook& book) {
@@ -62,7 +64,9 @@ Trade MatchingEngine::create_trade(Order& buy, Order& sell, double price, int64_
 OrderBook& MatchingEngine::get_or_create_book(const std::string& symbol) {
     // TODO [later]: if symbol not in books_, create a new OrderBook and insert it;
     //   return a reference to the book
-    return *books_[symbol];
+    //commenting out line below so the code compiles for now 6/25/2026 HASAN
+    //return *books_[symbol];
+    return *static_cast<OrderBook*>(nullptr); //placeholder for above
 }
 
 }  // namespace order_engine

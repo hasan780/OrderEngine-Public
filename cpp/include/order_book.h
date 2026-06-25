@@ -2,6 +2,8 @@
 #include "models.h"
 #include <optional>
 #include <string>
+#include <deque> // added by me
+#include <map> // added by me
 
 namespace order_engine {
 
@@ -10,6 +12,11 @@ struct PriceLevel {
     // TODO [this week]: decide what state a price level holds.
     //   - the price of this level
     //   - the orders at this level, stored FIFO (earliest first)
+
+    // MY CODE
+    double price;
+    std::deque<Order*> orders;
+    //
 
     int64_t total_quantity() const;
 };
@@ -32,6 +39,12 @@ private:
     //   - the symbol
     //   - bid levels (keyed by price, highest first)
     //   - ask levels (keyed by price, lowest first)
+
+    // MY CODE
+    std::string symbol_;
+    std::map<double, PriceLevel, std::greater<double>> bids_;
+    std::map<double, PriceLevel> asks_;
+    //
 };
 
 }  // namespace order_engine
