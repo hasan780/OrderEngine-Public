@@ -19,7 +19,7 @@ class PriceLevel:
         pass
 
     def total_quantity(self) -> int:
-        # TODO [later]: sum remaining_quantity across all orders
+        # TODO [this week]: sum remaining_quantity across all orders
         pass
 
 
@@ -46,13 +46,13 @@ class OrderBook:
         pass
 
     def best_bid(self) -> Optional[PriceLevel]:
-        # TODO [later]: return the PriceLevel with the highest bid price (None if no bids)
+        # TODO [this week]: return the PriceLevel with the highest bid price (None if no bids)
         pass
 
     def best_ask(self) -> Optional[PriceLevel]:
-        # TODO [later]: return the PriceLevel with the lowest ask price (None if no asks)
+        # TODO [this week]: return the PriceLevel with the lowest ask price (None if no asks)
         pass
 
     def spread(self) -> Optional[float]:
-        # TODO [later]: return best_ask.price - best_bid.price (None if either side empty)
+        # TODO [this week]: return best_ask.price - best_bid.price (None if either side empty)
         pass

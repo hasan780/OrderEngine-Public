@@ -11,7 +11,7 @@ OrderBook::OrderBook(std::string symbol) {
 }
 
 int64_t PriceLevel::total_quantity() const {
-    // TODO [later]: sum (order->quantity - order->filled_quantity) for each order
+    // TODO [this week]: sum (order->quantity - order->filled_quantity) for each order
     return 0;
 }
 
@@ -77,17 +77,17 @@ Order* OrderBook::cancel_order(const std::string& order_id, Side side, double pr
 }
 
 PriceLevel* OrderBook::best_bid() {
-    // TODO [later]: return pointer to first element of bids_ (highest price), or nullptr if empty
+    // TODO [this week]: return pointer to first element of bids_ (highest price), or nullptr if empty
     return nullptr;
 }
 
 PriceLevel* OrderBook::best_ask() {
-    // TODO [later]: return pointer to first element of asks_ (lowest price), or nullptr if empty
+    // TODO [this week]: return pointer to first element of asks_ (lowest price), or nullptr if empty
     return nullptr;
 }
 
 std::optional<double> OrderBook::spread() const {
-    // TODO [later]: if either side empty return nullopt; else asks_.begin()->first - bids_.begin()->first
+    // TODO [this week]: if either side empty return nullopt; else asks_.begin()->first - bids_.begin()->first
     return std::nullopt;
 }
 
