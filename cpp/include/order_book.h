@@ -4,6 +4,7 @@
 #include <string>
 #include <deque> // added by me
 #include <map> // added by me
+#include <unordered_map> // added by me
 
 namespace order_engine {
 
@@ -44,6 +45,8 @@ private:
     std::string symbol_;
     std::map<double, PriceLevel, std::greater<double>> bids_;
     std::map<double, PriceLevel> asks_;
+
+    std::unordered_map<std::string, Order*> order_lookup_; //global indexing intialization, unordered for less operations
     //
 };
 

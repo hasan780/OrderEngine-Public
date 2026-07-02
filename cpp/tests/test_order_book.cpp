@@ -89,37 +89,37 @@ TEST_CASE("cancel one of many leaves the other") {
 // NOTE: these are not part of this week's assignment (add_order / cancel_order).
 // Uncomment once you implement best_bid / best_ask / spread.
 
-// TEST_CASE("FIFO within price level") {
-//     OrderBook book("AAPL");
-//     auto b1 = make_order("b1", Side::BUY, 100.0, 5);
-//     auto b2 = make_order("b2", Side::BUY, 100.0, 7);
-//     book.add_order(&b1);
-//     book.add_order(&b2);
-//     REQUIRE(book.best_bid()->orders.front()->order_id == "b1");
-// }
+ TEST_CASE("FIFO within price level") {
+     OrderBook book("AAPL");
+     auto b1 = make_order("b1", Side::BUY, 100.0, 5);
+     auto b2 = make_order("b2", Side::BUY, 100.0, 7);
+     book.add_order(&b1);
+     book.add_order(&b2);
+     REQUIRE(book.best_bid()->orders.front()->order_id == "b1");
+ }
 
-// TEST_CASE("best bid and ask") {
-//     OrderBook book("AAPL");
-//     auto b1 = make_order("b1", Side::BUY, 100.0, 10);
-//     auto b2 = make_order("b2", Side::BUY, 101.0, 5);
-//     auto a1 = make_order("a1", Side::SELL, 102.0, 8);
-//     book.add_order(&b1);
-//     book.add_order(&b2);
-//     book.add_order(&a1);
-//     REQUIRE(book.best_bid()->price == 101.0);
-//     REQUIRE(book.best_ask()->price == 102.0);
-// }
+ TEST_CASE("best bid and ask") {
+     OrderBook book("AAPL");
+     auto b1 = make_order("b1", Side::BUY, 100.0, 10);
+     auto b2 = make_order("b2", Side::BUY, 101.0, 5);
+     auto a1 = make_order("a1", Side::SELL, 102.0, 8);
+     book.add_order(&b1);
+     book.add_order(&b2);
+     book.add_order(&a1);
+     REQUIRE(book.best_bid()->price == 101.0);
+    REQUIRE(book.best_ask()->price == 102.0);
+ }
 
-// TEST_CASE("spread") {
-//     OrderBook book("AAPL");
-//     auto b1 = make_order("b1", Side::BUY, 100.0, 10);
-//     auto a1 = make_order("a1", Side::SELL, 102.0, 10);
-//     book.add_order(&b1);
-//     book.add_order(&a1);
-//     REQUIRE_THAT(*book.spread(), Catch::Matchers::WithinAbs(2.0, 1e-9));
-// }
+ TEST_CASE("spread") {
+     OrderBook book("AAPL");
+     auto b1 = make_order("b1", Side::BUY, 100.0, 10);
+     auto a1 = make_order("a1", Side::SELL, 102.0, 10);
+     book.add_order(&b1);
+     book.add_order(&a1);
+     REQUIRE_THAT(*book.spread(), Catch::Matchers::WithinAbs(2.0, 1e-9));
+ }
 
-// TEST_CASE("empty book has no spread") {
-//     OrderBook book("AAPL");
-//     REQUIRE_FALSE(book.spread().has_value());
-// }
+ TEST_CASE("empty book has no spread") {
+     OrderBook book("AAPL");
+     REQUIRE_FALSE(book.spread().has_value());
+ }
