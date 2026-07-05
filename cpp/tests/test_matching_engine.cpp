@@ -1,33 +1,155 @@
 #include <catch2/catch_test_macros.hpp>
 #include "matching_engine.h"
+#include <memory>
 
 using namespace order_engine;
 
-TEST_CASE("no match when prices don't cross") {
-    // submit buy at 99, sell at 101
-    // assert trade_history() is empty
+static std::unique_ptr<Order> limit_order(const std::string& id, Side side,
+                                          double price, int64_t qty,
+                                          const std::string& symbol = "AAPL") {
+    auto o = std::make_unique<Order>();
+    o->order_id   = id;
+    o->symbol     = symbol;
+    o->side       = side;
+    o->order_type = OrderType::LIMIT;
+    o->quantity   = qty;
+    o->price      = price;
+    return o;
 }
+
+// ── no cross ─────────────────────────────────────────────────────────
+
+TEST_CASE("no match when prices don't cross") {
+    MatchingEngine engine;
+    engine.submit_order(limit_order("b1", Side::BUY,  99.0, 10));
+    engine.submit_order(limit_order("s1", Side::SELL, 101.0, 10));
+    REQUIRE(engine.trade_history().empty());
+}
+
+// ── basic fills ──────────────────────────────────────────────────────
 
 TEST_CASE("exact match") {
-    // submit buy at 100 qty 10, then sell at 100 qty 10
-    // assert 1 trade: price=100, qty=10
-    // assert both orders status == FILLED
+    MatchingEngine engine;
+    auto buy_ptr  = limit_order("b1", Side::BUY,  100.0, 10);
+    auto sell_ptr = limit_order("s1", Side::SELL, 100.0, 10);
+    Order* buy  = buy_ptr.get();
+    Order* sell = sell_ptr.get();
+
+    engine.submit_order(std::move(buy_ptr));
+    auto trades = engine.submit_order(std::move(sell_ptr));
+
+    REQUIRE(trades.size() == 1);
+    REQUIRE(trades[0].price == 100.0);
+    REQUIRE(trades[0].quantity == 10);
+    REQUIRE(trades[0].buy_order_id  == "b1");
+    REQUIRE(trades[0].sell_order_id == "s1");
+    REQUIRE(buy->status  == OrderStatus::FILLED);
+    REQUIRE(sell->status == OrderStatus::FILLED);
 }
 
-TEST_CASE("partial fill") {
-    // submit buy at 100 qty 10, then sell at 100 qty 6
-    // assert 1 trade qty=6
-    // assert buy is PARTIALLY_FILLED, sell is FILLED
+TEST_CASE("partial fill of resting order") {
+    MatchingEngine engine;
+    auto buy_ptr  = limit_order("b1", Side::BUY,  100.0, 10);
+    auto sell_ptr = limit_order("s1", Side::SELL, 100.0, 6);
+    Order* buy  = buy_ptr.get();
+    Order* sell = sell_ptr.get();
+
+    engine.submit_order(std::move(buy_ptr));
+    auto trades = engine.submit_order(std::move(sell_ptr));
+
+    REQUIRE(trades.size() == 1);
+    REQUIRE(trades[0].quantity == 6);
+    REQUIRE(sell->status == OrderStatus::FILLED);
+    REQUIRE(buy->status  == OrderStatus::PARTIALLY_FILLED);
+    REQUIRE(buy->filled_quantity == 6);
 }
+
+TEST_CASE("aggressor remainder rests on the book") {
+    MatchingEngine engine;
+    auto sell_ptr = limit_order("s1", Side::SELL, 100.0, 4);
+    auto buy_ptr  = limit_order("b1", Side::BUY,  100.0, 10);
+    Order* buy = buy_ptr.get();
+
+    engine.submit_order(std::move(sell_ptr));
+    auto trades = engine.submit_order(std::move(buy_ptr));
+
+    REQUIRE(trades.size() == 1);
+    REQUIRE(trades[0].quantity == 4);
+    REQUIRE(buy->status == OrderStatus::PARTIALLY_FILLED);
+    REQUIRE(buy->filled_quantity == 4);
+
+    // remaining 6 should be resting — a new sell of 6 fills it
+    auto trades2 = engine.submit_order(limit_order("s2", Side::SELL, 100.0, 6));
+    REQUIRE(trades2.size() == 1);
+    REQUIRE(trades2[0].quantity == 6);
+    REQUIRE(buy->status == OrderStatus::FILLED);
+}
+
+// ── priority & pricing rules ─────────────────────────────────────────
 
 TEST_CASE("price-time priority") {
-    // submit two buys at same price
-    // submit sell that only fills one
-    // assert the earlier buy is the one filled
+    MatchingEngine engine;
+    auto b1_ptr = limit_order("b1", Side::BUY, 100.0, 5);   // earlier
+    auto b2_ptr = limit_order("b2", Side::BUY, 100.0, 5);   // later
+    Order* b1 = b1_ptr.get();
+    Order* b2 = b2_ptr.get();
+
+    engine.submit_order(std::move(b1_ptr));
+    engine.submit_order(std::move(b2_ptr));
+    auto trades = engine.submit_order(limit_order("s1", Side::SELL, 100.0, 5));
+
+    REQUIRE(trades.size() == 1);
+    REQUIRE(trades[0].buy_order_id == "b1");   // oldest fills first
+    REQUIRE(b1->status == OrderStatus::FILLED);
+    REQUIRE(b2->status == OrderStatus::OPEN);
 }
 
-TEST_CASE("market buy fills at best ask") {
-    // submit limit sell at 100 qty 10
-    // submit market buy qty 5
-    // assert 1 trade: price=100, qty=5
+TEST_CASE("trade executes at resting price") {
+    MatchingEngine engine;
+    engine.submit_order(limit_order("s1", Side::SELL, 100.0, 10));      // resting ask @ 100
+    auto trades = engine.submit_order(limit_order("b1", Side::BUY, 105.0, 10));  // pays up to 105
+
+    REQUIRE(trades.size() == 1);
+    REQUIRE(trades[0].price == 100.0);   // passive (resting) price, not 105
 }
+
+// ── sweeping multiple levels ─────────────────────────────────────────
+
+TEST_CASE("sweep multiple levels") {
+    MatchingEngine engine;
+    engine.submit_order(limit_order("s1", Side::SELL, 10.00, 200));
+    auto s2_ptr = limit_order("s2", Side::SELL, 10.01, 400);
+    Order* s2 = s2_ptr.get();
+    engine.submit_order(std::move(s2_ptr));
+
+    auto buy_ptr = limit_order("b1", Side::BUY, 10.01, 500);
+    Order* buy = buy_ptr.get();
+    auto trades = engine.submit_order(std::move(buy_ptr));
+
+    REQUIRE(trades.size() == 2);
+    REQUIRE(trades[0].quantity == 200);
+    REQUIRE(trades[0].price == 10.00);
+    REQUIRE(trades[1].quantity == 300);
+    REQUIRE(trades[1].price == 10.01);
+    REQUIRE(buy->status == OrderStatus::FILLED);             // all 500 filled
+    REQUIRE(s2->status == OrderStatus::PARTIALLY_FILLED);    // 100 left resting
+    REQUIRE(s2->remaining_quantity() == 100);
+}
+
+// ── market orders: LATER / bonus — uncomment once implemented ─────────
+
+// TEST_CASE("market buy fills at best ask") {
+//     MatchingEngine engine;
+//     auto sell = std::make_unique<Order>();
+//     sell->order_id = "s1"; sell->symbol = "AAPL"; sell->side = Side::SELL;
+//     sell->order_type = OrderType::LIMIT; sell->quantity = 10; sell->price = 100.0;
+//     engine.submit_order(std::move(sell));
+//
+//     auto mkt = std::make_unique<Order>();
+//     mkt->order_id = "m1"; mkt->symbol = "AAPL"; mkt->side = Side::BUY;
+//     mkt->order_type = OrderType::MARKET; mkt->quantity = 5; mkt->price = std::nullopt;
+//     auto trades = engine.submit_order(std::move(mkt));
+//     REQUIRE(trades.size() == 1);
+//     REQUIRE(trades[0].quantity == 5);
+//     REQUIRE(trades[0].price == 100.0);
+// }

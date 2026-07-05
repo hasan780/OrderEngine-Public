@@ -3,6 +3,7 @@
 #include "order_book.h"
 #include <memory>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 namespace order_engine {
@@ -15,7 +16,10 @@ public:
     const std::vector<Trade>& trade_history() const;
 
 private:
-    // TODO [later]: decide what state the engine holds — books, orders, trades.
+    // Engine state (scaffolding — already wired up for you).
+    std::unordered_map<std::string, std::unique_ptr<OrderBook>> books_;   // symbol -> book
+    std::unordered_map<std::string, std::unique_ptr<Order>>     orders_;  // order_id -> order
+    std::vector<Trade>                                          trades_;  // executed trades
 
     std::vector<Trade> match_limit_order (Order* order, OrderBook& book);
     std::vector<Trade> match_market_order(Order* order, OrderBook& book);
