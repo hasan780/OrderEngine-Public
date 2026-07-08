@@ -95,7 +95,7 @@ std::vector<Trade> MatchingEngine::match_limit_order(Order* order, OrderBook& bo
     //
     // Step by step:
     //   std::vector<Trade> trades;
-    //
+    //  
     //   while (order->remaining_quantity() > 0) {
     //       1. Get the best opposite level:
     //            BUY  -> PriceLevel* level = book.best_ask();
@@ -124,6 +124,33 @@ std::vector<Trade> MatchingEngine::match_limit_order(Order* order, OrderBook& bo
     //        if (order->remaining_quantity() > 0) book.add_order(order);
     //
     //   return trades;
+
+    // MY CODE
+        while (order->remaining_quantity() > 0) {
+            PriceLevel* level = nullptr;
+
+            if (order->side == Side::BUY) {
+                level = book.best_ask();
+                if (level == nullptr) {
+                    break;
+                }
+                if (level->price > order->price.value()) {
+                    break;
+                }
+            } else if (order->side == Side::SELL) {
+                level = book.best_bid();
+                if (level == nullptr) {
+                    break;
+                }
+                if (level->price < order->price.value()) {
+                    break;
+                }
+            } else {
+                break;
+            }
+        }
+    //
+
     return {};
 }
 
