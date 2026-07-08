@@ -33,7 +33,7 @@ void OrderBook::add_order(Order* order) {
     if (order->quantity <= 0) {
         return;
     } 
-    if (order->price.has_value() && order->price.value() <= 0) { //AI improvement: check if it also has a value initially 
+    if (order->price.has_value() && order->price.value() <= 0) { //check if it also has a (+) value initially 
         return;
     }
 
