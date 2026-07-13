@@ -126,15 +126,17 @@ std::vector<Trade> MatchingEngine::match_limit_order(Order* order, OrderBook& bo
     //   return trades;
 
     // MY CODE
-        while (order->remaining_quantity() > 0) {
+        std::vector<Trade> trades;
+
+        while (order->remaining_quantity() > 0) { //loop if we have orders
             PriceLevel* level = nullptr;
 
-            if (order->side == Side::BUY) {
-                level = book.best_ask();
-                if (level == nullptr) {
+            if (order->side == Side::BUY) { //checks for buy
+                level = book.best_ask(); //assigns level to the best ask for the buy unless there isn't one
+                if (level == nullptr) { //checks if level has value
                     break;
                 }
-                if (level->price > order->price.value()) {
+                if (level->price > order->price.value()) { //checks for if prices don't cross
                     break;
                 }
             } else if (order->side == Side::SELL) {
@@ -148,7 +150,33 @@ std::vector<Trade> MatchingEngine::match_limit_order(Order* order, OrderBook& bo
             } else {
                 break;
             }
+
+            while (order->remaining_quantity() > 0 && !level->orders.empty()) { //loops when quantity has value and level is not empty
+                Order* resting = level->orders.front(); //resting orders get FIFO'ed
+                int64_t fill = std::min(order->remaining_quantity(), resting->remaining_quantity());
+            
+                Order* buy = nullptr; //declaration of buy and sell
+                Order* sell = nullptr;
+
+                if (order->side == Side::BUY) { //if its buy, sell is resting/buy is order
+                    sell = resting; //using Order* here again declares a brand new variable inside this scope
+                    buy = order;
+                } else {
+                    buy = resting;
+                    sell = order;
+                }
+
+                trades.push_back(create_trade(*buy, *sell, level->price, fill)); 
+
+                if (resting->remaining_quantity() == 0) {
+                    book.cancel_order(resting->order_id, resting->side, level->price);
+                    break; //to exit inner loop after cancelling order
+                }
+            }
         }
+
+        if (order->remaining_quantity() > 0) book.add_order(order);
+        return trades;
     //
 
     return {};
