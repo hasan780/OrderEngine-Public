@@ -110,6 +110,64 @@ class MatchingEngine:
         pass
 
     def _match_market_order(self, order: Order, book: OrderBook) -> List[Trade]:
-        # TODO [later]: (bonus / future) like _match_limit_order but with NO price
-        #   cross check — keep consuming the best level until filled or book empty.
+        # TODO [this week]: sweep the book to fill a MARKET order.
+        #
+        # A market order has NO limit price. It takes whatever liquidity exists,
+        # walking deeper into the book (level by level) until it is filled or
+        # the book runs out. Unlike a limit order, a market order NEVER rests.
+        #
+        # Step by step:
+        #   trades = []
+        #
+        #   while order.remaining_quantity > 0:
+        #       1. Get the best opposite level:
+        #            BUY  -> book.best_ask()
+        #            SELL -> book.best_bid()
+        #          If it is None -> break (no more liquidity; stop here).
+        #
+        #       2. NO price-cross check — a market order accepts any price.
+        #
+        #       3. Walk that level's resting orders, OLDEST FIRST (FIFO).
+        #          Take a snapshot: for resting in list(level.orders.values())
+        #          For each resting order:
+        #            - if order.remaining_quantity == 0: break
+        #            - fill_qty = min(order.remaining_quantity, resting.remaining_quantity)
+        #            - decide buyer/seller:
+        #                BUY  aggressor -> buy = order,  sell = resting
+        #                SELL aggressor -> buy = resting, sell = order
+        #            - trade = self._create_trade(buy, sell, level.price, fill_qty)
+        #            - trades.append(trade)
+        #            - if resting.remaining_quantity == 0:
+        #                  book.cancel_order(resting.order_id, resting.side, resting.price)
+        #
+        #   4. Do NOT rest the remainder. If the book ran dry, the order is only
+        #      partially filled and that's fine — a market order just stops.
+        #
+        #   return trades
         pass
+
+
+def vwap(trades: List[Trade]) -> float:
+    """Volume-Weighted Average Price across a list of executed trades.
+
+        VWAP = sum(price_i * quantity_i) / sum(quantity_i)
+
+    When a market order sweeps several price levels, it fills at many different
+    prices. VWAP collapses those fills into ONE effective price — the number a
+    trader is told they "really" paid for the whole order. Each Trade carries a
+    ``.price`` and a ``.quantity``.
+
+    TODO [this week]: implement it.
+      1. If ``trades`` is empty, return 0.0 (nothing executed — avoid /0).
+      2. notional = sum(t.price * t.quantity for t in trades)   # total money
+      3. volume   = sum(t.quantity for t in trades)             # total shares
+      4. return notional / volume
+
+    Worked example (a 1,000-share buy sweeping three asks):
+        fills    = 200 @ 10.01, 500 @ 10.02, 300 @ 10.03
+        notional = 200*10.01 + 500*10.02 + 300*10.03 = 10021.0
+        volume   = 200 + 500 + 300 = 1000
+        vwap     = 10021.0 / 1000 = 10.021
+    """
+    # TODO [this week]: implement using the formula in the docstring above
+    pass

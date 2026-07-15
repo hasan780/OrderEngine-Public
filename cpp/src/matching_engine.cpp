@@ -128,9 +128,63 @@ std::vector<Trade> MatchingEngine::match_limit_order(Order* order, OrderBook& bo
 }
 
 std::vector<Trade> MatchingEngine::match_market_order(Order* order, OrderBook& book) {
-    // TODO [later]: (bonus / future) like match_limit_order but with NO price
-    //   cross check — keep consuming the best level until filled or book empty.
+    // TODO [this week]: sweep the book to fill a MARKET order.
+    //
+    // A market order has NO limit price. It takes whatever liquidity exists,
+    // walking deeper into the book until it is filled or the book runs out.
+    // Unlike a limit order, a market order NEVER rests.
+    //
+    // Step by step:
+    //   std::vector<Trade> trades;
+    //
+    //   while (order->remaining_quantity() > 0) {
+    //       1. Best opposite level:
+    //            BUY  -> PriceLevel* level = book.best_ask();
+    //            SELL -> PriceLevel* level = book.best_bid();
+    //          If level == nullptr -> break (no more liquidity; stop).
+    //
+    //       2. NO price-cross check — a market order accepts any price.
+    //
+    //       3. Fill the front resting order (FIFO) while the level has orders
+    //          and the aggressor still needs quantity:
+    //            - Order* resting = level->orders.front();
+    //            - int64_t fill = std::min(order->remaining_quantity(),
+    //                                      resting->remaining_quantity());
+    //            - decide buyer/seller (BUY aggressor: buy=order, sell=resting)
+    //            - trades.push_back(create_trade(*buy, *sell, level->price, fill));
+    //            - if resting->remaining_quantity() == 0:
+    //                  book.cancel_order(resting->order_id, resting->side, level->price);
+    //   }
+    //
+    //   4. Do NOT rest the remainder — a market order just stops if the book
+    //      runs dry (partial fill is acceptable).
+    //
+    //   return trades;
     return {};
+}
+
+// -----------------------------------------------------------------------------
+// Volume-Weighted Average Price across a list of executed trades.
+//   VWAP = sum(price_i * quantity_i) / sum(quantity_i)
+//
+// When a market order sweeps several price levels it fills at many prices;
+// VWAP collapses those into ONE effective price for the whole order.
+//
+// TODO [this week]: implement it.
+//   1. If trades is empty, return 0.0 (nothing executed — avoid divide by zero).
+//   2. notional = sum over trades of (t.price * t.quantity)   // total money
+//   3. volume   = sum over trades of  t.quantity              // total shares
+//   4. return notional / volume
+//
+// Worked example (a 1,000-share buy sweeping three asks):
+//   fills    = 200 @ 10.01, 500 @ 10.02, 300 @ 10.03
+//   notional = 200*10.01 + 500*10.02 + 300*10.03 = 10021.0
+//   volume   = 1000
+//   vwap     = 10021.0 / 1000 = 10.021
+// -----------------------------------------------------------------------------
+double vwap(const std::vector<Trade>& trades) {
+    // TODO [this week]: implement using the formula above
+    return 0.0;
 }
 
 }  // namespace order_engine
