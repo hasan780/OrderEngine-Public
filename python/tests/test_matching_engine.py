@@ -172,6 +172,24 @@ def test_market_order_partial_when_insufficient_liquidity():
     assert buy.status == OrderStatus.PARTIALLY_FILLED   # market orders do NOT rest
 
 
+def test_market_sell_sweeps_bids():
+    # A SELL market order consumes the BID side, highest price first.
+    engine = MatchingEngine()
+    engine.submit_order(limit(Side.BUY, 10.00, 200, "b1"))
+    engine.submit_order(limit(Side.BUY, 9.99, 500, "b2"))
+    engine.submit_order(limit(Side.BUY, 9.98, 300, "b3"))
+
+    sell = market(Side.SELL, 1000, "m1")   # sweeps all three bid levels
+    trades = engine.submit_order(sell)
+
+    assert len(trades) == 3
+    assert trades[0].quantity == 200 and trades[0].price == 10.00
+    assert trades[1].quantity == 500 and trades[1].price == 9.99
+    assert trades[2].quantity == 300 and trades[2].price == 9.98
+    assert sell.filled_quantity == 1000
+    assert sell.status == OrderStatus.FILLED
+
+
 # ── VWAP (this week) ────────────────────────────────────────────────
 
 def test_vwap_across_sweep():

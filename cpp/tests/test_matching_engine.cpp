@@ -193,6 +193,25 @@ TEST_CASE("market order partial when insufficient liquidity") {
     REQUIRE(buy->status == OrderStatus::PARTIALLY_FILLED);   // market orders don't rest
 }
 
+TEST_CASE("market sell sweeps bids") {
+    // A SELL market order consumes the BID side, highest price first.
+    MatchingEngine engine;
+    engine.submit_order(limit_order("b1", Side::BUY, 10.00, 200));
+    engine.submit_order(limit_order("b2", Side::BUY,  9.99, 500));
+    engine.submit_order(limit_order("b3", Side::BUY,  9.98, 300));
+
+    auto sell_ptr = market_order("m1", Side::SELL, 1000);
+    Order* sell = sell_ptr.get();
+    auto trades = engine.submit_order(std::move(sell_ptr));
+
+    REQUIRE(trades.size() == 3);
+    REQUIRE(trades[0].quantity == 200); REQUIRE(trades[0].price == 10.00);
+    REQUIRE(trades[1].quantity == 500); REQUIRE(trades[1].price == 9.99);
+    REQUIRE(trades[2].quantity == 300); REQUIRE(trades[2].price == 9.98);
+    REQUIRE(sell->filled_quantity == 1000);
+    REQUIRE(sell->status == OrderStatus::FILLED);
+}
+
 // ── VWAP (this week) ─────────────────────────────────────────────────
 
 TEST_CASE("vwap across a sweep") {
