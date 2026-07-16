@@ -1,4 +1,5 @@
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include "matching_engine.h"
 #include <memory>
 
@@ -14,6 +15,19 @@ static std::unique_ptr<Order> limit_order(const std::string& id, Side side,
     o->order_type = OrderType::LIMIT;
     o->quantity   = qty;
     o->price      = price;
+    return o;
+}
+
+static std::unique_ptr<Order> market_order(const std::string& id, Side side,
+                                           int64_t qty,
+                                           const std::string& symbol = "AAPL") {
+    auto o = std::make_unique<Order>();
+    o->order_id   = id;
+    o->symbol     = symbol;
+    o->side       = side;
+    o->order_type = OrderType::MARKET;
+    o->quantity   = qty;
+    o->price      = std::nullopt;
     return o;
 }
 
@@ -136,20 +150,81 @@ TEST_CASE("sweep multiple levels") {
     REQUIRE(s2->remaining_quantity() == 100);
 }
 
-// ── market orders: LATER / bonus — uncomment once implemented ─────────
+// ── market orders (this week) ────────────────────────────────────────
 
-// TEST_CASE("market buy fills at best ask") {
-//     MatchingEngine engine;
-//     auto sell = std::make_unique<Order>();
-//     sell->order_id = "s1"; sell->symbol = "AAPL"; sell->side = Side::SELL;
-//     sell->order_type = OrderType::LIMIT; sell->quantity = 10; sell->price = 100.0;
-//     engine.submit_order(std::move(sell));
-//
-//     auto mkt = std::make_unique<Order>();
-//     mkt->order_id = "m1"; mkt->symbol = "AAPL"; mkt->side = Side::BUY;
-//     mkt->order_type = OrderType::MARKET; mkt->quantity = 5; mkt->price = std::nullopt;
-//     auto trades = engine.submit_order(std::move(mkt));
-//     REQUIRE(trades.size() == 1);
-//     REQUIRE(trades[0].quantity == 5);
-//     REQUIRE(trades[0].price == 100.0);
-// }
+TEST_CASE("market buy fills at best ask") {
+    MatchingEngine engine;
+    engine.submit_order(limit_order("s1", Side::SELL, 100.0, 10));
+    auto trades = engine.submit_order(market_order("m1", Side::BUY, 5));
+    REQUIRE(trades.size() == 1);
+    REQUIRE(trades[0].quantity == 5);
+    REQUIRE(trades[0].price == 100.0);
+}
+
+TEST_CASE("market order sweeps three levels") {
+    MatchingEngine engine;
+    engine.submit_order(limit_order("s1", Side::SELL, 10.01, 200));
+    engine.submit_order(limit_order("s2", Side::SELL, 10.02, 500));
+    engine.submit_order(limit_order("s3", Side::SELL, 10.03, 300));
+
+    auto buy_ptr = market_order("m1", Side::BUY, 1000);
+    Order* buy = buy_ptr.get();
+    auto trades = engine.submit_order(std::move(buy_ptr));
+
+    REQUIRE(trades.size() == 3);
+    REQUIRE(trades[0].quantity == 200); REQUIRE(trades[0].price == 10.01);
+    REQUIRE(trades[1].quantity == 500); REQUIRE(trades[1].price == 10.02);
+    REQUIRE(trades[2].quantity == 300); REQUIRE(trades[2].price == 10.03);
+    REQUIRE(buy->filled_quantity == 1000);
+    REQUIRE(buy->status == OrderStatus::FILLED);
+}
+
+TEST_CASE("market order partial when insufficient liquidity") {
+    MatchingEngine engine;
+    engine.submit_order(limit_order("s1", Side::SELL, 10.01, 200));
+
+    auto buy_ptr = market_order("m1", Side::BUY, 500);   // only 200 available
+    Order* buy = buy_ptr.get();
+    auto trades = engine.submit_order(std::move(buy_ptr));
+
+    REQUIRE(trades.size() == 1);
+    REQUIRE(trades[0].quantity == 200);
+    REQUIRE(buy->filled_quantity == 200);
+    REQUIRE(buy->status == OrderStatus::PARTIALLY_FILLED);   // market orders don't rest
+}
+
+TEST_CASE("market sell sweeps bids") {
+    // A SELL market order consumes the BID side, highest price first.
+    MatchingEngine engine;
+    engine.submit_order(limit_order("b1", Side::BUY, 10.00, 200));
+    engine.submit_order(limit_order("b2", Side::BUY,  9.99, 500));
+    engine.submit_order(limit_order("b3", Side::BUY,  9.98, 300));
+
+    auto sell_ptr = market_order("m1", Side::SELL, 1000);
+    Order* sell = sell_ptr.get();
+    auto trades = engine.submit_order(std::move(sell_ptr));
+
+    REQUIRE(trades.size() == 3);
+    REQUIRE(trades[0].quantity == 200); REQUIRE(trades[0].price == 10.00);
+    REQUIRE(trades[1].quantity == 500); REQUIRE(trades[1].price == 9.99);
+    REQUIRE(trades[2].quantity == 300); REQUIRE(trades[2].price == 9.98);
+    REQUIRE(sell->filled_quantity == 1000);
+    REQUIRE(sell->status == OrderStatus::FILLED);
+}
+
+// ── VWAP (this week) ─────────────────────────────────────────────────
+
+TEST_CASE("vwap across a sweep") {
+    MatchingEngine engine;
+    engine.submit_order(limit_order("s1", Side::SELL, 10.01, 200));
+    engine.submit_order(limit_order("s2", Side::SELL, 10.02, 500));
+    engine.submit_order(limit_order("s3", Side::SELL, 10.03, 300));
+    auto trades = engine.submit_order(market_order("m1", Side::BUY, 1000));
+
+    // notional = 200*10.01 + 500*10.02 + 300*10.03 = 10021; volume = 1000
+    REQUIRE_THAT(vwap(trades), Catch::Matchers::WithinAbs(10.021, 1e-9));
+}
+
+TEST_CASE("vwap of no trades is zero") {
+    REQUIRE(vwap({}) == 0.0);
+}

@@ -27,4 +27,7 @@ private:
     OrderBook&         get_or_create_book(const std::string& symbol);
 };
 
+// Volume-Weighted Average Price of a set of trades (see matching_engine.cpp).
+double vwap(const std::vector<Trade>& trades);
+
 }  // namespace order_engine

@@ -1,4 +1,5 @@
 import uuid
+import pytest
 from order_engine.models import Order, Side, OrderType, OrderStatus
 from order_engine.matching_engine import MatchingEngine
 
@@ -130,12 +131,79 @@ def test_sweep_multiple_levels():
     assert s2.remaining_quantity == 100
 
 
-# ── market orders: LATER / bonus — uncomment once implemented ────────
+# ── market orders (this week) ───────────────────────────────────────
 
-# def test_market_buy_fills_at_best_ask():
-#     engine = MatchingEngine()
-#     engine.submit_order(limit(Side.SELL, 100.0, 10, "s1"))
-#     trades = engine.submit_order(market(Side.BUY, 5, "m1"))
-#     assert len(trades) == 1
-#     assert trades[0].quantity == 5
-#     assert trades[0].price == 100.0
+def test_market_buy_fills_at_best_ask():
+    engine = MatchingEngine()
+    engine.submit_order(limit(Side.SELL, 100.0, 10, "s1"))
+    trades = engine.submit_order(market(Side.BUY, 5, "m1"))
+    assert len(trades) == 1
+    assert trades[0].quantity == 5
+    assert trades[0].price == 100.0
+
+
+def test_market_order_sweeps_three_levels():
+    engine = MatchingEngine()
+    engine.submit_order(limit(Side.SELL, 10.01, 200, "s1"))
+    engine.submit_order(limit(Side.SELL, 10.02, 500, "s2"))
+    engine.submit_order(limit(Side.SELL, 10.03, 300, "s3"))
+
+    buy = market(Side.BUY, 1000, "m1")   # sweeps all three levels
+    trades = engine.submit_order(buy)
+
+    assert len(trades) == 3
+    assert trades[0].quantity == 200 and trades[0].price == 10.01
+    assert trades[1].quantity == 500 and trades[1].price == 10.02
+    assert trades[2].quantity == 300 and trades[2].price == 10.03
+    assert buy.filled_quantity == 1000
+    assert buy.status == OrderStatus.FILLED
+
+
+def test_market_order_partial_when_insufficient_liquidity():
+    engine = MatchingEngine()
+    engine.submit_order(limit(Side.SELL, 10.01, 200, "s1"))
+
+    buy = market(Side.BUY, 500, "m1")    # only 200 available
+    trades = engine.submit_order(buy)
+
+    assert len(trades) == 1
+    assert trades[0].quantity == 200
+    assert buy.filled_quantity == 200
+    assert buy.status == OrderStatus.PARTIALLY_FILLED   # market orders do NOT rest
+
+
+def test_market_sell_sweeps_bids():
+    # A SELL market order consumes the BID side, highest price first.
+    engine = MatchingEngine()
+    engine.submit_order(limit(Side.BUY, 10.00, 200, "b1"))
+    engine.submit_order(limit(Side.BUY, 9.99, 500, "b2"))
+    engine.submit_order(limit(Side.BUY, 9.98, 300, "b3"))
+
+    sell = market(Side.SELL, 1000, "m1")   # sweeps all three bid levels
+    trades = engine.submit_order(sell)
+
+    assert len(trades) == 3
+    assert trades[0].quantity == 200 and trades[0].price == 10.00
+    assert trades[1].quantity == 500 and trades[1].price == 9.99
+    assert trades[2].quantity == 300 and trades[2].price == 9.98
+    assert sell.filled_quantity == 1000
+    assert sell.status == OrderStatus.FILLED
+
+
+# ── VWAP (this week) ────────────────────────────────────────────────
+
+def test_vwap_across_sweep():
+    from order_engine.matching_engine import vwap
+    engine = MatchingEngine()
+    engine.submit_order(limit(Side.SELL, 10.01, 200, "s1"))
+    engine.submit_order(limit(Side.SELL, 10.02, 500, "s2"))
+    engine.submit_order(limit(Side.SELL, 10.03, 300, "s3"))
+    trades = engine.submit_order(market(Side.BUY, 1000, "m1"))
+
+    # notional = 200*10.01 + 500*10.02 + 300*10.03 = 10021; volume = 1000
+    assert vwap(trades) == pytest.approx(10.021)
+
+
+def test_vwap_empty_trades_is_zero():
+    from order_engine.matching_engine import vwap
+    assert vwap([]) == 0.0
