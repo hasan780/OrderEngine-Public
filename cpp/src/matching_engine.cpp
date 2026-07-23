@@ -287,6 +287,22 @@ std::vector<Trade> MatchingEngine::match_market_order(Order* order, OrderBook& b
 // -----------------------------------------------------------------------------
 double vwap(const std::vector<Trade>& trades) {
     // TODO [this week]: implement using the formula above
+
+    //MY CODE
+    if (trades.empty()) {
+        return 0.0;
+    }
+    
+    double notional = 0.0;
+    int64_t volume = 0;
+    
+    for (const auto& t : trades) { //referencing while iterating through trades
+    notional += t.price * t.quantity;
+    volume += t.quantity;
+    }
+
+    return notional/volume;
+    //
     return 0.0;
 }
 
