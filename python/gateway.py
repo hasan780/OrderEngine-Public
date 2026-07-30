@@ -2,10 +2,10 @@
 Python order gateway — exposes your MatchingEngine over TCP using the shared
 wire protocol (see PROTOCOL.md at the repo root).
 
-The socket plumbing below is DONE for you. Your task this week is the three
-protocol handlers marked "TODO [this week]": handle_new, handle_cancel,
-handle_book. Each one maps a protocol line to engine calls and formats the
-reply — the exact formats are in PROTOCOL.md.
+The socket plumbing below is DONE for you. Your task this week is the protocol
+handlers marked "TODO [this week]": handle_new, handle_cancel, handle_book,
+handle_query, handle_symbols. Each maps a protocol line to engine calls and
+formats the reply — the exact formats are in PROTOCOL.md.
 
 Run it:
     cd python
@@ -49,6 +49,10 @@ class Gateway:
             return self.handle_cancel(parts)
         if cmd == "BOOK":
             return self.handle_book(parts)
+        if cmd == "QUERY":
+            return self.handle_query(parts)
+        if cmd == "SYMBOLS":
+            return self.handle_symbols(parts)
         return [f"ERR unknown command {cmd}"]
 
     # ------------------------------------------------------------------
@@ -83,6 +87,21 @@ class Gateway:
         #        END
         #   - You'll need a way to list ALL levels with their total quantity.
         #     Add a snapshot()/helper to OrderBook if you don't have one yet.
+        return ["END"]
+
+    def handle_query(self, parts) -> list[str]:
+        # TODO [this week]: QUERY <order_id>
+        #   - Look the order up in the engine (add a get_order(id) helper).
+        #   - If unknown -> STATUS <id> UNKNOWN 0 0
+        #   - Else map its live status to a protocol word and reply:
+        #        STATUS <id> <FILLED|PARTIAL|RESTING|CANCELLED> <filled> <remaining>
+        #   (This is how the visualizer knows a resting order has since filled.)
+        return ["ERR QUERY not implemented yet"]
+
+    def handle_symbols(self, parts) -> list[str]:
+        # TODO [this week]: SYMBOLS
+        #   - List the symbols the engine has a book for (add get_symbols()).
+        #   - Emit one "SYM <name>" line each, then "END".
         return ["END"]
 
 

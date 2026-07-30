@@ -58,6 +58,8 @@ public:
         if (cmd == "NEW")    return handle_new(t);
         if (cmd == "CANCEL") return handle_cancel(t);
         if (cmd == "BOOK")   return handle_book(t);
+        if (cmd == "QUERY")  return handle_query(t);
+        if (cmd == "SYMBOLS") return handle_symbols(t);
         return {"ERR unknown command " + cmd};
     }
 
@@ -67,7 +69,7 @@ private:
     std::string new_id() { return "o-" + std::to_string(++seq_); }
 
     // ------------------------------------------------------------------
-    // YOUR TASK THIS WEEK — implement the three handlers below.
+    // YOUR TASK THIS WEEK — implement the handlers below.
     // ------------------------------------------------------------------
 
     std::vector<std::string> handle_new(const std::vector<std::string>& t) {
@@ -104,6 +106,24 @@ private:
         //        END
         //   - You'll need a way to list ALL levels with their total quantity.
         //     Add a snapshot helper to OrderBook if you don't have one yet.
+        (void)t;
+        return {"END"};
+    }
+
+    std::vector<std::string> handle_query(const std::vector<std::string>& t) {
+        // TODO [this week]: QUERY <order_id>
+        //   - Look the order up (add a find_order(id) helper to the engine).
+        //   - If unknown -> STATUS <id> UNKNOWN 0 0
+        //   - Else map its live status to a protocol word and reply:
+        //        STATUS <id> <FILLED|PARTIAL|RESTING|CANCELLED> <filled> <remaining>
+        (void)t;
+        return {"ERR QUERY not implemented yet"};
+    }
+
+    std::vector<std::string> handle_symbols(const std::vector<std::string>& t) {
+        // TODO [this week]: SYMBOLS
+        //   - List the symbols the engine has a book for (add symbols()).
+        //   - Emit one "SYM <name>" line each, then "END".
         (void)t;
         return {"END"};
     }

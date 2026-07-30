@@ -47,6 +47,19 @@ CANCEL <order_id>
 BOOK <symbol>
 ```
 
+### QUERY — ask for one order's live status
+```
+QUERY <order_id>
+```
+Because the book snapshot is aggregated (no ids), this is how a client checks
+whether a specific order is still resting or has since been filled/cancelled.
+
+### SYMBOLS — list the symbols the engine has a book for
+```
+SYMBOLS
+```
+Lets a client populate a symbol dropdown. Reply is `SYM <name>` lines then `END`.
+
 ---
 
 ## Responses  (engine → client)
