@@ -126,7 +126,7 @@ TEST_CASE("cancel one of many leaves the other") {
      REQUIRE_FALSE(book.spread().has_value());
  }
 
- TEST_CASE("concurrent add_order from two threads is thread-safe") {
+ TEST_CASE("concurrent add_order from two threads is thread-safe") { // My test case
     OrderBook book("AAPL");
     const int N = 500;
 
