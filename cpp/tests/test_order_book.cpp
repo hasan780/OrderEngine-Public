@@ -1,6 +1,8 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include "order_book.h"
+#include <thread>
+#include <vector>
 
 using namespace order_engine;
 
@@ -123,3 +125,31 @@ TEST_CASE("cancel one of many leaves the other") {
      OrderBook book("AAPL");
      REQUIRE_FALSE(book.spread().has_value());
  }
+
+ TEST_CASE("concurrent add_order from two threads is thread-safe") {
+    OrderBook book("AAPL");
+    const int N = 500;
+
+    std::vector<Order> orders_a;
+    std::vector<Order> orders_b;
+    orders_a.reserve(N);
+    orders_b.reserve(N);
+
+    for (int i = 0; i < N; i++) {
+        orders_a.push_back(make_order("a" + std::to_string(i), Side::BUY, 100.0, 1));
+        orders_b.push_back(make_order("b" + std::to_string(i), Side::BUY, 100.0, 1));
+    }
+
+    auto worker = [&book](std::vector<Order>& orders) {
+        for (auto& o : orders) {
+            book.add_order(&o);
+        }
+    };
+
+    std::thread t1(worker, std::ref(orders_a));
+    std::thread t2(worker, std::ref(orders_b));
+    t1.join();
+    t2.join();
+
+    REQUIRE(book.best_bid()->total_quantity() == 2 * N);
+}

@@ -2,9 +2,10 @@
 #include "models.h"
 #include <optional>
 #include <string>
-#include <deque> // added by me
-#include <map> // added by me
-#include <unordered_map> // added by me
+#include <deque> // added
+#include <map> // added
+#include <unordered_map> // added
+#include <mutex> // added
 
 namespace order_engine {
 
@@ -42,6 +43,8 @@ private:
     //   - ask levels (keyed by price, lowest first)
 
     // MY CODE
+    std::mutex mutex_; // protects bids_, asks_, and order_lookup_ threads
+
     std::string symbol_;
     std::map<double, PriceLevel, std::greater<double>> bids_;
     std::map<double, PriceLevel> asks_;

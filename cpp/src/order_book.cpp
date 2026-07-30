@@ -30,6 +30,9 @@ void OrderBook::add_order(Order* order) {
 
     // MY CODE
     // validation of values before (HASAN NOTES)
+
+    std::lock_guard<std::mutex> lock(mutex_); // thread locking add_order
+
     if (order->quantity <= 0) {
         return;
     } 
@@ -62,6 +65,9 @@ Order* OrderBook::cancel_order(const std::string& order_id, Side side, double pr
     // and cleanup to proper places. also above add the validation, add 1 UNIT test case, this is HW.
     // priority of hw: 3 new function, global indexing, validation, unit test
     // also check email and validate compilation
+
+    std::lock_guard<std::mutex> lock(mutex_); // thread locking cancel_order
+
     auto it_lookup = order_lookup_.find(order_id); // global indexing added, not implemented in rest of code yet
     if (it_lookup == order_lookup_.end()) {
         return nullptr;
