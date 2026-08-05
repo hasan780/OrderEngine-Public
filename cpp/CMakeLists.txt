@@ -11,6 +11,10 @@ add_library(order_engine_lib
 )
 target_include_directories(order_engine_lib PUBLIC include)
 
+# ----- Gateway (TCP server that speaks the wire protocol; see PROTOCOL.md) -----
+add_executable(gateway src/gateway.cpp)
+target_link_libraries(gateway PRIVATE order_engine_lib)
+
 # ----- Tests (requires Catch2 installed via vcpkg or system package) -----
 find_package(Catch2 3 REQUIRED)
 
