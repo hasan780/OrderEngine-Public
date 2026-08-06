@@ -92,33 +92,77 @@ class EngineClient:
 
     # -- protocol commands — YOUR TASK ---------------------------------
 
-    def submit(self, symbol: str, side: str, otype: str,
-               qty: int, price: Optional[float] = None) -> SubmitResult:
+    #def submit(self, symbol: str, side: str, otype: str,
+     #          qty: int, price: Optional[float] = None) -> SubmitResult:
         # TODO [this week]: send "NEW <symbol> <side> <otype> <qty> [price]"
         #   - price is included only for LIMIT
         #   - read until a line starts with "STATUS" or "ERR"
         #   - parse into a SubmitResult (see _parse_submit hint below)
         raise NotImplementedError
 
-    def cancel(self, order_id: str) -> SubmitResult:
+   #def cancel(self, order_id: str) -> SubmitResult:
         # TODO [this week]: send "CANCEL <order_id>", read until STATUS/ERR, parse
-        raise NotImplementedError
+     #   raise NotImplementedError
 
-    def query(self, order_id: str) -> SubmitResult:
+   # def query(self, order_id: str) -> SubmitResult:
         # TODO [this week]: send "QUERY <order_id>", read until STATUS/ERR, parse
-        raise NotImplementedError
+    #    raise NotImplementedError
 
-    def book(self, symbol: str) -> BookSnapshot:
+   # def book(self, symbol: str) -> BookSnapshot:
         # TODO [this week]: send "BOOK <symbol>", read until a line == "END"
         #   - collect BID/ASK lines into (price, qty) tuples
         #   - return BookSnapshot(bids=..., asks=...)
-        raise NotImplementedError
+     #   raise NotImplementedError
 
-    def symbols(self) -> List[str]:
+   # def symbols(self) -> List[str]:
         # TODO [this week]: send "SYMBOLS", read until "END"
         #   - return the <name> from each "SYM <name>" line
-        raise NotImplementedError
+    #    raise NotImplementedError
 
+
+    #AI Generated UI
+    def submit(self, symbol: str, side: str, otype: str,
+            qty: int, price: Optional[float] = None) -> SubmitResult:
+        line = f"NEW {symbol} {side} {otype} {qty}"
+        if price is not None:
+            line += f" {price}"
+        lines = self._request(line, done=lambda l: l.startswith("STATUS") or l.startswith("ERR"))
+        return self._parse_submit(lines)
+
+    def cancel(self, order_id: str) -> SubmitResult:
+        line = f"CANCEL {order_id}"
+        lines = self._request(line, done=lambda l: l.startswith("STATUS") or l.startswith("ERR"))
+        return self._parse_submit(lines)
+
+    def query(self, order_id: str) -> SubmitResult:
+        line = f"QUERY {order_id}"
+        lines = self._request(line, done=lambda l: l.startswith("STATUS") or l.startswith("ERR"))
+        return self._parse_submit(lines)
+
+    def book(self, symbol: str) -> BookSnapshot:
+        line = f"BOOK {symbol}"
+        lines = self._request(line, done=lambda l: l == "END")
+        bids: List[Level] = []
+        asks: List[Level] = []
+        for r in lines:
+            f = r.split()
+            if not f:
+                continue
+            if f[0] == "BID":
+                bids.append((float(f[1]), int(f[2])))
+            elif f[0] == "ASK":
+                asks.append((float(f[1]), int(f[2])))
+        return BookSnapshot(bids=bids, asks=asks)
+
+    def symbols(self) -> List[str]:
+        lines = self._request("SYMBOLS", done=lambda l: l == "END")
+        out: List[str] = []
+        for r in lines:
+            f = r.split()
+            if f and f[0] == "SYM":
+                out.append(f[1])
+        return out
+    #
     # -- parsing hint ---------------------------------------------------
     # A helper you'll likely want for submit/cancel/query. Turns the reply
     # lines (zero or more TRADE lines + one STATUS line) into a SubmitResult.
