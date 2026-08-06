@@ -57,6 +57,19 @@ const std::vector<Trade>& MatchingEngine::trade_history() const {
     return trades_;
 }
 
+//AI Generated
+Order* MatchingEngine::find_order(const std::string& order_id) const {
+    auto it = orders_.find(order_id);
+    return it == orders_.end() ? nullptr : it->second.get();
+}
+
+std::vector<std::string> MatchingEngine::symbols() const {
+    std::vector<std::string> out;
+    for (const auto& kv : books_) out.push_back(kv.first);
+    return out;
+}
+//
+
 OrderBook& MatchingEngine::get_or_create_book(const std::string& symbol) {
     auto it = books_.find(symbol);
     if (it == books_.end())

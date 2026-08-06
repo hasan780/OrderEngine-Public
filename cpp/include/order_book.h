@@ -36,6 +36,11 @@ public:
     PriceLevel*           best_ask();
     std::optional<double> spread() const;
 
+    //AI Generated
+    const std::map<double, PriceLevel, std::greater<double>>& bids() const { return bids_; }
+    const std::map<double, PriceLevel>& asks() const { return asks_; }
+    //
+
 private:
     // TODO [this week]: decide what state the book holds.
     //   - the symbol
