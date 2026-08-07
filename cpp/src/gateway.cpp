@@ -338,6 +338,7 @@ int main() {
             ssize_t n = ::recv(conn, chunk, sizeof(chunk), 0);
             if (n <= 0) { std::cout << "client disconnected" << std::endl; break; }
             buffer.append(chunk, n);
+            //std::cerr << "[gateway] buffer now: " << buffer << std::endl;
             std::size_t pos;
             while ((pos = buffer.find('\n')) != std::string::npos) {
                 std::string line = buffer.substr(0, pos);
