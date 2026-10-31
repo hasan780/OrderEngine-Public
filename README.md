@@ -10,7 +10,7 @@ A limit order book and matching engine written in C++, exposed over a TCP gatewa
 ## What it does
 
 - **Price-time priority matching** for LIMIT and MARKET orders, including partial fills and sweeps across multiple price levels.
-- **O(1) order cancellation** via a global order-ID index, independent of book depth.
+- **Order cancellation** by order ID: a hash-map lookup rejects unknown IDs in O(1), then the order is located by its price level (O(log n)) and removed from that level's queue (linear in the orders resting at that price).
 - **Thread-safe order submission**, validated with a concurrent stress test.
 - **VWAP execution analytics** in the visualizer — session VWAP, trade count, volume, and a running-VWAP chart that shows how the average execution price moves as an order sweeps through multiple price levels.
 - **A TCP gateway** implementing a custom line-based wire protocol (see `PROTOCOL.md`), so the engine can be driven by any client — including the web UI.
@@ -82,6 +82,7 @@ ctest
 - Order types are LIMIT and MARKET only; no IOC/FOK/stop/iceberg orders.
 - No persistence — the book lives in memory and resets when the gateway restarts.
 - No multi-symbol concurrency — the orderbook is not able to process multiple orders from various symbols at once. 
+- Cancellation scans the orders resting at a price level, so it is not O(1). Cancelled or filled orders are also not removed from the order-ID index.
 - No high-volume throughput — orders are processed one at a time as they arrive over a single connection, with no batching or concurrent request handling, so it isn't built to handle a large burst of orders at once.
 
 ## How this was built
