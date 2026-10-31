@@ -1,9 +1,8 @@
 # Order Engine Wire Protocol (v1)
 
-A tiny, line-based text protocol that both the **Python** and **C++** gateways
-implement identically. Because the format is the same on both sides, the
-**visualizer is written once** and works against either engine — just point it
-at a different port.
+A tiny, line-based text protocol implemented by the C++ gateway. Any client
+that speaks it (the Streamlit visualizer, `nc`, or a custom script) can drive
+the engine.
 
 ```
    client (visualizer / nc)  ──TCP──►  gateway  ──►  MatchingEngine
@@ -147,7 +146,7 @@ ERR <message>
 - **VWAP** is a client-side concern: the visualizer can compute it from the
   `TRADE` lines it receives (or the engine's `vwap()` helper can be exposed
   later as an optional `VWAP` response line — not part of v1).
-- **Ports (convention):** Python gateway `9000`, C++ gateway `9001`. The
-  visualizer takes host/port as arguments so it can target either.
+- **Port:** the C++ gateway listens on `9001`. The visualizer takes host/port
+  as inputs, so it can target any gateway that speaks this protocol.
 - **Keep v1 frozen.** Any additions (new commands, extra fields) go in a v2 so
   the shared visualizer never breaks.

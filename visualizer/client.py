@@ -8,8 +8,7 @@ submit, cancel, book, query, symbols. Each sends one request line and parses
 the reply — the exact formats are in PROTOCOL.md.
 
 The Streamlit UI (app.py) is written entirely against this interface, so once
-these methods work, the visualizer works — against EITHER engine (the Python
-gateway on 9000 or the C++ gateway on 9001), since the protocol is identical.
+these methods work, the visualizer works against the C++ gateway on port 9001.
 
 Standard library only — easy to test against a running gateway.
 """
@@ -58,7 +57,7 @@ class BookSnapshot:
 class EngineClient:
     """Line-buffered protocol client over one TCP connection."""
 
-    def __init__(self, host: str = "127.0.0.1", port: int = 9000, timeout: float = 3.0):
+    def __init__(self, host: str = "127.0.0.1", port: int = 9001, timeout: float = 3.0):
         self.host, self.port = host, port
         self._sock = socket.create_connection((host, port), timeout=timeout)
         self._buf = ""

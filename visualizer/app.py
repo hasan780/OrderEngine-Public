@@ -1,7 +1,6 @@
 """
-Order engine visualizer — a Streamlit UI that drives EITHER engine over the
-shared wire protocol. Point it at the Python gateway (9000) or the C++ gateway
-(9001); the code is identical because the protocol is.
+Order engine visualizer: a Streamlit UI that drives the C++ engine through
+its TCP gateway (default port 9001) using the wire protocol in ../PROTOCOL.md.
  
 Run:
     cd visualizer
@@ -30,8 +29,8 @@ ss.setdefault("symbol", "AAPL")
 with st.sidebar:
     st.header("Connection")
     host = st.text_input("Host", "127.0.0.1")
-    port = st.number_input("Port", value=9000, step=1,
-                           help="Python gateway = 9000, C++ gateway = 9001")
+    port = st.number_input("Port", value=9001, step=1,
+                           help="C++ gateway port (default 9001)")
  
     if ss.client is None:
         if st.button("Connect", type="primary", use_container_width=True):
@@ -72,9 +71,8 @@ with st.sidebar:
 st.title("📈 Order Engine")
  
 if ss.client is None:
-    st.info("Start a gateway, then connect from the sidebar.\n\n"
-            "Python:  `cd python && python gateway.py`  (port 9000)\n\n"
-            "C++:  `./build/gateway`  (port 9001)")
+    st.info("Start the gateway, then connect from the sidebar.\n\n"
+            "`cd cpp/build && ./gateway`  (port 9001)")
     st.stop()
  
  
