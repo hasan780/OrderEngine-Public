@@ -2,9 +2,11 @@
 
 A limit order book and matching engine written in C++, exposed over a TCP gateway with a live Python/Streamlit visualizer. Built during an 8-week Build Fellowship workshop on order matching engines.
 
-![demo placeholder](docs/demo.gif)
-<!-- Replace with a screenshot or short GIF of the visualizer: a resting order,
-     a multi-level sweep producing trades, and a cancel. -->
+## Demo
+
+[![C++ Stock Order Matching Engine Demo](https://cdn.loom.com/sessions/thumbnails/cd761aa9e1e44aa89f49a1e51ab2704a-with-play.gif)](https://www.loom.com/share/cd761aa9e1e44aa89f49a1e51ab2704a)
+
+[Watch the demo on Loom](https://www.loom.com/share/cd761aa9e1e44aa89f49a1e51ab2704a)
 
 ## What it does
 
