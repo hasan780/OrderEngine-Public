@@ -5,11 +5,6 @@
 
 namespace order_engine {
 
-// -----------------------------------------------------------------------------
-// Scaffolding below is already implemented for you. Your job this week is the
-// ONE method marked "TODO [this week]": match_limit_order.
-// -----------------------------------------------------------------------------
-
 static int64_t now_ns() {
     return std::chrono::duration_cast<std::chrono::nanoseconds>(
                std::chrono::steady_clock::now().time_since_epoch())
@@ -57,7 +52,6 @@ const std::vector<Trade>& MatchingEngine::trade_history() const {
     return trades_;
 }
 
-//AI Generated
 Order* MatchingEngine::find_order(const std::string& order_id) const {
     auto it = orders_.find(order_id);
     return it == orders_.end() ? nullptr : it->second.get();
@@ -68,7 +62,6 @@ std::vector<std::string> MatchingEngine::symbols() const {
     for (const auto& kv : books_) out.push_back(kv.first);
     return out;
 }
-//
 
 OrderBook& MatchingEngine::get_or_create_book(const std::string& symbol) {
     auto it = books_.find(symbol);
@@ -77,8 +70,7 @@ OrderBook& MatchingEngine::get_or_create_book(const std::string& symbol) {
     return *it->second;
 }
 
-// Record a fill: update both orders, build + store the Trade.
-// Use this from your matching loop — you don't need to change it.
+// Record a fill: update both orders, build and store the Trade.
 Trade MatchingEngine::create_trade(Order& buy, Order& sell, double price, int64_t qty) {
     buy.filled_quantity  += qty;
     sell.filled_quantity += qty;
@@ -99,224 +91,127 @@ Trade MatchingEngine::create_trade(Order& buy, Order& sell, double price, int64_
     return t;
 }
 
-// -----------------------------------------------------------------------------
-// YOUR TASK THIS WEEK
-// -----------------------------------------------------------------------------
-
+// Price-time priority: fill against the best opposite level while prices cross,
+// oldest resting order first. Any remainder rests on the book.
 std::vector<Trade> MatchingEngine::match_limit_order(Order* order, OrderBook& book) {
-    // TODO [this week]: implement Price-Time Priority matching.
-    //
-    // Step by step:
-    //   std::vector<Trade> trades;
-    //  
-    //   while (order->remaining_quantity() > 0) {
-    //       1. Get the best opposite level:
-    //            BUY  -> PriceLevel* level = book.best_ask();
-    //            SELL -> PriceLevel* level = book.best_bid();
-    //          If level == nullptr -> break (no liquidity).
-    //
-    //       2. Check the prices cross:
-    //            BUY  matches only if level->price <= order->price.value()
-    //            SELL matches only if level->price >= order->price.value()
-    //          If they don't cross -> break.
-    //
-    //       3. Walk level->orders OLDEST FIRST (front of the list = FIFO).
-    //          For the front resting order (loop while it has orders and the
-    //          aggressor still needs quantity):
-    //            - Order* resting = level->orders.front();
-    //            - int64_t fill = std::min(order->remaining_quantity(),
-    //                                      resting->remaining_quantity());
-    //            - decide buyer/seller (BUY aggressor: buy=order, sell=resting)
-    //            - trades.push_back(create_trade(*buy, *sell, level->price, fill));
-    //              (NOTE: price is the RESTING level's price — the passive side)
-    //            - if resting->remaining_quantity() == 0:
-    //                  book.cancel_order(resting->order_id, resting->side, level->price);
-    //              (this removes it and prunes the empty level for you)
-    //
-    //   4. Whatever is left over rests on the book:
-    //        if (order->remaining_quantity() > 0) book.add_order(order);
-    //
-    //   return trades;
+    std::vector<Trade> trades;
 
-    // MY CODE
-        std::vector<Trade> trades;
+    while (order->remaining_quantity() > 0) {
+        PriceLevel* level = nullptr;
 
-        while (order->remaining_quantity() > 0) { //loop if we have orders
-            PriceLevel* level = nullptr;
-
-            if (order->side == Side::BUY) { //checks for buy
-                level = book.best_ask(); //assigns level to the best ask for the buy unless there isn't one
-                if (level == nullptr) { //checks if level has value
-                    break;
-                }
-                if (level->price > order->price.value()) { //checks for if prices don't cross
-                    break;
-                }
-            } else if (order->side == Side::SELL) {
-                level = book.best_bid();
-                if (level == nullptr) {
-                    break;
-                }
-                if (level->price < order->price.value()) {
-                    break;
-                }
-            } else {
+        if (order->side == Side::BUY) {
+            level = book.best_ask();
+            if (level == nullptr) {
                 break;
             }
-
-            while (order->remaining_quantity() > 0 && !level->orders.empty()) { //loops when quantity has value and level is not empty
-                Order* resting = level->orders.front(); //resting orders get FIFO'ed
-                int64_t fill = std::min(order->remaining_quantity(), resting->remaining_quantity());
-            
-                Order* buy = nullptr; //declaration of buy and sell
-                Order* sell = nullptr;
-
-                if (order->side == Side::BUY) { //if its buy, sell is resting/buy is order
-                    sell = resting; //using Order* here again declares a brand new variable inside this scope
-                    buy = order;
-                } else {
-                    buy = resting;
-                    sell = order;
-                }
-
-                trades.push_back(create_trade(*buy, *sell, level->price, fill)); 
-
-                if (resting->remaining_quantity() == 0) {
-                    book.cancel_order(resting->order_id, resting->side, level->price);
-                    break; //to exit inner loop after cancelling order
-                }
+            if (level->price > order->price.value()) {
+                break;
             }
+        } else if (order->side == Side::SELL) {
+            level = book.best_bid();
+            if (level == nullptr) {
+                break;
+            }
+            if (level->price < order->price.value()) {
+                break;
+            }
+        } else {
+            break;
         }
 
-        if (order->remaining_quantity() > 0) book.add_order(order);
-        return trades;
-    //
+        while (order->remaining_quantity() > 0 && !level->orders.empty()) {
+            Order* resting = level->orders.front();
+            int64_t fill = std::min(order->remaining_quantity(), resting->remaining_quantity());
 
-    return {};
+            Order* buy = nullptr;
+            Order* sell = nullptr;
+
+            if (order->side == Side::BUY) {
+                sell = resting;
+                buy = order;
+            } else {
+                buy = resting;
+                sell = order;
+            }
+
+            trades.push_back(create_trade(*buy, *sell, level->price, fill));
+
+            // Removing a filled order can erase the level, so re-fetch it on the next pass.
+            if (resting->remaining_quantity() == 0) {
+                book.cancel_order(resting->order_id, resting->side, level->price);
+                break;
+            }
+        }
+    }
+
+    if (order->remaining_quantity() > 0) book.add_order(order);
+    return trades;
 }
 
+// Market orders take any price and sweep levels until filled or the book is empty.
+// They never rest; an unfilled remainder is dropped.
 std::vector<Trade> MatchingEngine::match_market_order(Order* order, OrderBook& book) {
-    // TODO [this week]: sweep the book to fill a MARKET order.
-    //
-    // A market order has NO limit price. It takes whatever liquidity exists,
-    // walking deeper into the book until it is filled or the book runs out.
-    // Unlike a limit order, a market order NEVER rests.
-    //
-    // Step by step:
-    //   std::vector<Trade> trades;
-    //
-    //   while (order->remaining_quantity() > 0) {
-    //       1. Best opposite level:
-    //            BUY  -> PriceLevel* level = book.best_ask();
-    //            SELL -> PriceLevel* level = book.best_bid();
-    //          If level == nullptr -> break (no more liquidity; stop).
-    //
-    //       2. NO price-cross check — a market order accepts any price.
-    //
-    //       3. Fill the front resting order (FIFO) while the level has orders
-    //          and the aggressor still needs quantity:
-    //            - Order* resting = level->orders.front();
-    //            - int64_t fill = std::min(order->remaining_quantity(),
-    //                                      resting->remaining_quantity());
-    //            - decide buyer/seller (BUY aggressor: buy=order, sell=resting)
-    //            - trades.push_back(create_trade(*buy, *sell, level->price, fill));
-    //            - if resting->remaining_quantity() == 0:
-    //                  book.cancel_order(resting->order_id, resting->side, level->price);
-    //   }
-    //
-    //   4. Do NOT rest the remainder — a market order just stops if the book
-    //      runs dry (partial fill is acceptable).
-    //
-    //   return trades;
-    
-    // MY CODE
-    std::vector<Trade> trades; //copy pasted from above, removed price cross checks from buy/sell.
-                                //also removed resting remainder line
-    while (order->remaining_quantity() > 0) { //loop if we have orders
-            PriceLevel* level = nullptr;
+    std::vector<Trade> trades;
 
-            if (order->side == Side::BUY) { //checks for buy
-                level = book.best_ask(); //assigns level to the best ask for the buy unless there isn't one
-                if (level == nullptr) { //checks if level has value
-                    break;
-                }
-            } else if (order->side == Side::SELL) {
-                level = book.best_bid();
-                if (level == nullptr) {
-                    break;
-                }
-            } else {
+    while (order->remaining_quantity() > 0) {
+        PriceLevel* level = nullptr;
+
+        if (order->side == Side::BUY) {
+            level = book.best_ask();
+            if (level == nullptr) {
                 break;
             }
-
-            while (order->remaining_quantity() > 0 && !level->orders.empty()) { //loops when quantity has value and level is not empty
-                Order* resting = level->orders.front(); //resting orders get FIFO'ed
-                int64_t fill = std::min(order->remaining_quantity(), resting->remaining_quantity());
-            
-                Order* buy = nullptr; //declaration of buy and sell
-                Order* sell = nullptr;
-
-                if (order->side == Side::BUY) { //if its buy, sell is resting/buy is order
-                    sell = resting; //using Order* here again declares a brand new variable inside this scope
-                    buy = order;
-                } else {
-                    buy = resting;
-                    sell = order;
-                }
-
-                trades.push_back(create_trade(*buy, *sell, level->price, fill)); 
-
-                if (resting->remaining_quantity() == 0) {
-                    book.cancel_order(resting->order_id, resting->side, level->price);
-                    break; //to exit inner loop after cancelling order
-                }
+        } else if (order->side == Side::SELL) {
+            level = book.best_bid();
+            if (level == nullptr) {
+                break;
             }
+        } else {
+            break;
         }
 
-        return trades;
-    //
-    return {};
+        while (order->remaining_quantity() > 0 && !level->orders.empty()) {
+            Order* resting = level->orders.front();
+            int64_t fill = std::min(order->remaining_quantity(), resting->remaining_quantity());
+
+            Order* buy = nullptr;
+            Order* sell = nullptr;
+
+            if (order->side == Side::BUY) {
+                sell = resting;
+                buy = order;
+            } else {
+                buy = resting;
+                sell = order;
+            }
+
+            trades.push_back(create_trade(*buy, *sell, level->price, fill));
+
+            if (resting->remaining_quantity() == 0) {
+                book.cancel_order(resting->order_id, resting->side, level->price);
+                break;
+            }
+        }
+    }
+
+    return trades;
 }
 
-
-// -----------------------------------------------------------------------------
-// Volume-Weighted Average Price across a list of executed trades.
-//   VWAP = sum(price_i * quantity_i) / sum(quantity_i)
-//
-// When a market order sweeps several price levels it fills at many prices;
-// VWAP collapses those into ONE effective price for the whole order.
-//
-// TODO [this week]: implement it.
-//   1. If trades is empty, return 0.0 (nothing executed — avoid divide by zero).
-//   2. notional = sum over trades of (t.price * t.quantity)   // total money
-//   3. volume   = sum over trades of  t.quantity              // total shares
-//   4. return notional / volume
-//
-// Worked example (a 1,000-share buy sweeping three asks):
-//   fills    = 200 @ 10.01, 500 @ 10.02, 300 @ 10.03
-//   notional = 200*10.01 + 500*10.02 + 300*10.03 = 10021.0
-//   volume   = 1000
-//   vwap     = 10021.0 / 1000 = 10.021
-// -----------------------------------------------------------------------------
+// VWAP = sum(price_i * quantity_i) / sum(quantity_i)
 double vwap(const std::vector<Trade>& trades) {
-    // TODO [this week]: implement using the formula above
-
-    //MY CODE
     if (trades.empty()) {
         return 0.0;
     }
-    
+
     double notional = 0.0;
     int64_t volume = 0;
-    
-    for (const auto& t : trades) { //referencing while iterating through trades
-    notional += t.price * t.quantity;
-    volume += t.quantity;
+
+    for (const auto& t : trades) {
+        notional += t.price * t.quantity;
+        volume += t.quantity;
     }
 
-    return notional/volume;
-    //
-    return 0.0;
+    return notional / volume;
 }
 
 }  // namespace order_engine

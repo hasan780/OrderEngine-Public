@@ -150,7 +150,7 @@ TEST_CASE("sweep multiple levels") {
     REQUIRE(s2->remaining_quantity() == 100);
 }
 
-// ── market orders (this week) ────────────────────────────────────────
+// ── market orders ────────────────────────────────────────────────────
 
 TEST_CASE("market buy fills at best ask") {
     MatchingEngine engine;
@@ -212,7 +212,7 @@ TEST_CASE("market sell sweeps bids") {
     REQUIRE(sell->status == OrderStatus::FILLED);
 }
 
-// ── VWAP (this week) ─────────────────────────────────────────────────
+// ── VWAP ─────────────────────────────────────────────────────────────
 
 TEST_CASE("vwap across a sweep") {
     MatchingEngine engine;

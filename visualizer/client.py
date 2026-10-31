@@ -1,16 +1,9 @@
 """
-Protocol client for the order engine — a thin, engine-agnostic socket client
-that speaks the shared wire protocol (see ../PROTOCOL.md).
+Protocol client for the order engine: a thin socket client that speaks the
+wire protocol in ../PROTOCOL.md. The Streamlit UI (app.py) is built on this
+interface and connects to the C++ gateway on port 9001.
 
-The dataclasses and the low-level socket plumbing (_readline, _request) are
-DONE for you. Your task is the five protocol methods marked "TODO [this week]":
-submit, cancel, book, query, symbols. Each sends one request line and parses
-the reply — the exact formats are in PROTOCOL.md.
-
-The Streamlit UI (app.py) is written entirely against this interface, so once
-these methods work, the visualizer works against the C++ gateway on port 9001.
-
-Standard library only — easy to test against a running gateway.
+Standard library only.
 """
 
 from __future__ import annotations
@@ -62,7 +55,7 @@ class EngineClient:
         self._sock = socket.create_connection((host, port), timeout=timeout)
         self._buf = ""
 
-    # -- low level (done for you) --------------------------------------
+    # -- low level -------------------------------------------------------
 
     def _readline(self) -> str:
         while "\n" not in self._buf:
@@ -89,39 +82,10 @@ class EngineClient:
         except OSError:
             pass
 
-    # -- protocol commands — YOUR TASK ---------------------------------
+    # -- protocol commands -----------------------------------------------
 
-    #def submit(self, symbol: str, side: str, otype: str,
-     #          qty: int, price: Optional[float] = None) -> SubmitResult:
-        # TODO [this week]: send "NEW <symbol> <side> <otype> <qty> [price]"
-        #   - price is included only for LIMIT
-        #   - read until a line starts with "STATUS" or "ERR"
-        #   - parse into a SubmitResult (see _parse_submit hint below)
-        raise NotImplementedError
-
-   #def cancel(self, order_id: str) -> SubmitResult:
-        # TODO [this week]: send "CANCEL <order_id>", read until STATUS/ERR, parse
-     #   raise NotImplementedError
-
-   # def query(self, order_id: str) -> SubmitResult:
-        # TODO [this week]: send "QUERY <order_id>", read until STATUS/ERR, parse
-    #    raise NotImplementedError
-
-   # def book(self, symbol: str) -> BookSnapshot:
-        # TODO [this week]: send "BOOK <symbol>", read until a line == "END"
-        #   - collect BID/ASK lines into (price, qty) tuples
-        #   - return BookSnapshot(bids=..., asks=...)
-     #   raise NotImplementedError
-
-   # def symbols(self) -> List[str]:
-        # TODO [this week]: send "SYMBOLS", read until "END"
-        #   - return the <name> from each "SYM <name>" line
-    #    raise NotImplementedError
-
-
-    #AI Generated UI
     def submit(self, symbol: str, side: str, otype: str,
-            qty: int, price: Optional[float] = None) -> SubmitResult:
+               qty: int, price: Optional[float] = None) -> SubmitResult:
         line = f"NEW {symbol} {side} {otype} {qty}"
         if price is not None:
             line += f" {price}"
@@ -161,10 +125,8 @@ class EngineClient:
             if f and f[0] == "SYM":
                 out.append(f[1])
         return out
-    #
-    # -- parsing hint ---------------------------------------------------
-    # A helper you'll likely want for submit/cancel/query. Turns the reply
-    # lines (zero or more TRADE lines + one STATUS line) into a SubmitResult.
+
+    # Turns reply lines (zero or more TRADE lines + one STATUS line) into a SubmitResult.
     @staticmethod
     def _parse_submit(lines: List[str]) -> SubmitResult:
         trades: List[Trade] = []

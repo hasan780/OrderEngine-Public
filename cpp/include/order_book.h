@@ -1,24 +1,18 @@
 #pragma once
 #include "models.h"
+#include <deque>
+#include <map>
+#include <mutex>
 #include <optional>
 #include <string>
-#include <deque> // added
-#include <map> // added
-#include <unordered_map> // added
-#include <mutex> // added
+#include <unordered_map>
 
 namespace order_engine {
 
 // All orders at a single price, FIFO.
 struct PriceLevel {
-    // TODO [this week]: decide what state a price level holds.
-    //   - the price of this level
-    //   - the orders at this level, stored FIFO (earliest first)
-
-    // MY CODE
     double price;
     std::deque<Order*> orders;
-    //
 
     int64_t total_quantity() const;
 };
@@ -36,26 +30,17 @@ public:
     PriceLevel*           best_ask();
     std::optional<double> spread() const;
 
-    //AI Generated
     const std::map<double, PriceLevel, std::greater<double>>& bids() const { return bids_; }
     const std::map<double, PriceLevel>& asks() const { return asks_; }
-    //
 
 private:
-    // TODO [this week]: decide what state the book holds.
-    //   - the symbol
-    //   - bid levels (keyed by price, highest first)
-    //   - ask levels (keyed by price, lowest first)
-
-    // MY CODE
-    std::mutex mutex_; // protects bids_, asks_, and order_lookup_ threads
+    std::mutex mutex_;  // guards bids_, asks_, and order_lookup_
 
     std::string symbol_;
     std::map<double, PriceLevel, std::greater<double>> bids_;
     std::map<double, PriceLevel> asks_;
 
-    std::unordered_map<std::string, Order*> order_lookup_; //global indexing intialization, unordered for less operations
-    //
+    std::unordered_map<std::string, Order*> order_lookup_;  // order_id -> order
 };
 
 }  // namespace order_engine

@@ -45,3 +45,7 @@ Thumbs.db
 .idea/
 *.swp
 *.swo
+
+# ── CTest output ────────────────────────────────────────────────────
+Testing/
+**/Testing/

@@ -15,13 +15,10 @@ public:
     OrderBook*         get_order_book(const std::string& symbol);
     const std::vector<Trade>& trade_history() const;
 
-    //AI Generated
     Order* find_order(const std::string& order_id) const;
     std::vector<std::string> symbols() const;
-    //
 
 private:
-    // Engine state (scaffolding — already wired up for you).
     std::unordered_map<std::string, std::unique_ptr<OrderBook>> books_;   // symbol -> book
     std::unordered_map<std::string, std::unique_ptr<Order>>     orders_;  // order_id -> order
     std::vector<Trade>                                          trades_;  // executed trades
